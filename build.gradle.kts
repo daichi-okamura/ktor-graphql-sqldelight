@@ -8,6 +8,8 @@ val graphql_kotlin_version: String by project
 plugins {
     kotlin("jvm") version "1.9.23"
     id("io.ktor.plugin") version "2.3.10"
+    id("org.graalvm.buildtools.native") version "0.9.3"
+    id("com.expediagroup.graphql") version "7.1.0"
 }
 
 group = "com.example"
@@ -30,4 +32,24 @@ dependencies {
     implementation("ch.qos.logback", "logback-classic", logback_version)
     testImplementation("io.ktor", "ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin", "kotlin-test-junit", kotlin_version)
+}
+
+graphql {
+    graalVm {
+        packages = listOf("com.example")
+    }
+}
+
+graalvmNative {
+    toolchainDetection.set(false)
+    binaries {
+        named("main") {
+            verbose.set(true)
+            buildArgs.add("--initialize-at-build-time=io.ktor,kotlin,ch.qos.logback,org.slf4j")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+        }
+        metadataRepository {
+            enabled.set(true)
+        }
+    }
 }

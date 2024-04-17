@@ -27,6 +27,12 @@ fun Application.module() {
             packages = listOf("com.example")
             queries = listOf(PokemonQuery())
             mutations = listOf(PokemonMutation())
+            typeHierarchy = mapOf(
+                Pokemon::class to listOf(
+                    NormalPokemon::class,
+                    LegendPokemon::class
+                )
+            )
         }
         server {
             contextFactory = DefaultContextFactory()
