@@ -1,0 +1,11 @@
+findById:
+SELECT * FROM app.PokemonEntity WHERE id = :id;
+
+selectAll:
+SELECT * FROM app.PokemonEntity ORDER BY id;
+
+insert:
+INSERT INTO app.PokemonEntity (name, color, location) VALUES (?, ?, ?) RETURNING *;
+
+insertEntity:
+INSERT INTO app.PokemonEntity VALUES ? RETURNING *;

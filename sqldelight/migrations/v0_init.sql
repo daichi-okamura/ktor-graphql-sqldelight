@@ -1,0 +1,6 @@
+CREATE TABLE app.PokemonEntity (
+    id SERIAL NOT NULL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    color VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NULL
+);
