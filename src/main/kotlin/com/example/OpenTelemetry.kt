@@ -2,7 +2,9 @@ package com.example
 
 import io.ktor.server.application.*
 import io.ktor.utils.io.errors.*
+import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
 import io.opentelemetry.context.propagation.ContextPropagators
 import io.opentelemetry.context.propagation.TextMapPropagator
@@ -73,5 +75,26 @@ class FileSpanExporter(private val filename: String) : SpanExporter {
     override fun shutdown(): CompletableResultCode? {
         // No-op
         return CompletableResultCode.ofSuccess()
+    }
+}
+
+inline fun <T> withNewSpan(
+    scopeName: String,
+    spanName: String,
+    body: () -> T
+): T {
+    val newSpan = GlobalOpenTelemetry
+        .getTracer(scopeName)
+        .spanBuilder(spanName)
+        .startSpan()
+    try {
+        val result = body()
+        newSpan.setStatus(StatusCode.OK)
+        return result
+    } catch (e: Exception) {
+        newSpan.setStatus(StatusCode.ERROR)
+        throw e
+    } finally {
+        newSpan.end()
     }
 }
