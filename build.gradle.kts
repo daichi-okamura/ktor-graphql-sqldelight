@@ -39,6 +39,8 @@ dependencies {
     implementation("io.github.oshai","kotlin-logging-jvm","5.1.0")
     implementation("ch.qos.logback", "logback-classic", logback_version)
     implementation("net.logstash.logback", "logstash-logback-encoder", "6.6")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-2.0:2.3.0-alpha")
+    implementation("io.opentelemetry:opentelemetry-sdk:1.37.0")
 }
 
 sqldelight {

@@ -8,6 +8,9 @@ import com.expediagroup.graphql.server.operations.Mutation
 import com.expediagroup.graphql.server.operations.Query
 import graphql.schema.DataFetchingEnvironment
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.trace.Span
+import io.opentelemetry.api.trace.StatusCode
 import kotlinx.coroutines.coroutineScope
 import java.text.DateFormat
 import java.util.*
@@ -44,7 +47,17 @@ class PokemonQuery : Query {
     @Suppress("unused")
     suspend fun getAllPokemon(): List<Pokemon> = coroutineScope {
         logger.info { "getAllPokemon is called." }
-        queries.selectAll().executeAsList().map { it.toPokemon() }
+        val span = startSpan("selectAll")
+        try {
+            queries.selectAll().executeAsList().map { it.toPokemon() }.also {
+                span.ok()
+            }
+        } catch (e: Exception) {
+            span.error(e)
+            throw e
+        } finally {
+            span.end()
+        }
     }
 
     @GraphQLDescription("Get a Pokemon by ID")
@@ -55,7 +68,18 @@ class PokemonQuery : Query {
             payload = mapOf("id" to id)
         }
         logger.info { "getPokemonNyId is called. id:$id" }
-        queries.findById(id.value.toInt()).executeAsOneOrNull()?.toPokemon()
+
+        val span = startSpan("findById")
+        try {
+            queries.findById(id.value.toInt()).executeAsOneOrNull()?.toPokemon().also {
+                span.ok()
+            }
+        } catch (e: Exception) {
+            span.error(e)
+            throw e
+        } finally {
+            span.end()
+        }
     }
 
     @Suppress("unused")
@@ -64,6 +88,15 @@ class PokemonQuery : Query {
         logger.info("Locale is {locale}.", locale)
         val dataFormat = DateFormat.getDateInstance(DateFormat.SHORT, locale)
         dataFormat.format(Date())
+    }
+
+    companion object {
+        private fun startSpan(spanName: String): Span {
+            return GlobalOpenTelemetry
+                .getTracer("PokemonQuery")
+                .spanBuilder(spanName)
+                .startSpan()
+        }
     }
 }
 
@@ -77,11 +110,22 @@ class PokemonMutation : Mutation {
         color: Pokemon.Color,
         location: String? = null
     ): Pokemon = coroutineScope {
-        queries.transactionWithResult {
-            afterCommit { logger.info { "commited." } }
-            afterRollback { logger.info { "rollback." } }
-            queries.insert(name, color.name, location).executeAsOne().toPokemon()
+        val span = startSpan("insert")
+        try {
+            queries.transactionWithResult {
+                afterCommit { logger.info { "commited." } }
+                afterRollback { logger.info { "rollback." } }
+                queries.insert(name, color.name, location).executeAsOne().toPokemon()
+            }.also {
+                span.ok()
+            }
+        } catch (e: Exception) {
+            span.error(e)
+            throw e
+        } finally {
+            span.end()
         }
+
     }
 
     @GraphQLDescription("Database migration")
@@ -95,6 +139,15 @@ class PokemonMutation : Mutation {
         )
         "Migration completed."
     }
+
+    companion object {
+        private fun startSpan(spanName: String): Span {
+            return GlobalOpenTelemetry
+                .getTracer("PokemonMutation")
+                .spanBuilder(spanName)
+                .startSpan()
+        }
+    }
 }
 
 private fun PokemonEntity.toPokemon() = if (location != null) {
@@ -102,3 +155,6 @@ private fun PokemonEntity.toPokemon() = if (location != null) {
 } else {
     NormalPokemon(id, name, Pokemon.Color.valueOf(color))
 }
+
+private fun Span.ok() = apply { setStatus(StatusCode.OK) }
+private fun Span.error(e: Exception? = null) = apply { setStatus(StatusCode.ERROR) }

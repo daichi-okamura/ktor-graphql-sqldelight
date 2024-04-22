@@ -11,6 +11,7 @@ import java.util.*
 @Suppress("unused") // Referenced in application.conf
 fun Application.module() {
     DatabaseSingleton.init(environment.config)
+    setOpenTelemetry()
 
     install(GraphQL) {
         schema {
