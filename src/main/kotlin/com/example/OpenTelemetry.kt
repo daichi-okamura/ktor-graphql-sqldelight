@@ -12,9 +12,10 @@ import io.opentelemetry.sdk.common.CompletableResultCode
 import io.opentelemetry.sdk.logs.SdkLoggerProvider
 import io.opentelemetry.sdk.trace.SdkTracerProvider
 import io.opentelemetry.sdk.trace.data.SpanData
-import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import java.io.FileWriter
+import java.time.Duration
 
 fun Application.setOpenTelemetry(): OpenTelemetry {
     val propagators = ContextPropagators.create(
@@ -23,12 +24,14 @@ fun Application.setOpenTelemetry(): OpenTelemetry {
         )
     )
 
+    val spanExporter = FileSpanExporter("traces.txt")
+    val spanProcessor = BatchSpanProcessor.builder(spanExporter)
+        .setMaxQueueSize(2048)
+        .setScheduleDelay(Duration.ofSeconds(5))
+        .build()
+
     val tracerProvider = SdkTracerProvider.builder()
-        .addSpanProcessor(
-            SimpleSpanProcessor.create(
-                FileSpanExporter("traces.txt")
-            )
-        )
+        .addSpanProcessor(spanProcessor)
         .build()
 
     val loggerProvider = SdkLoggerProvider.builder()
