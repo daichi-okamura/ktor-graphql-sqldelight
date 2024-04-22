@@ -36,7 +36,9 @@ dependencies {
     implementation("app.cash.sqldelight", "jdbc-driver", "2.0.2")
     implementation("com.zaxxer", "HikariCP", hikaricp_version)
     implementation("org.postgresql", "postgresql", "42.7.3")
-    implementation("io.klogging:slf4j-klogging:0.5.11")
+    implementation("io.github.oshai","kotlin-logging-jvm","5.1.0")
+    implementation("ch.qos.logback", "logback-classic", logback_version)
+    implementation("net.logstash.logback", "logstash-logback-encoder", "6.6")
 }
 
 sqldelight {

@@ -7,7 +7,7 @@ import com.expediagroup.graphql.generator.scalars.ID
 import com.expediagroup.graphql.server.operations.Mutation
 import com.expediagroup.graphql.server.operations.Query
 import graphql.schema.DataFetchingEnvironment
-import io.klogging.Klogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
 import java.text.DateFormat
 import java.util.*
@@ -37,19 +37,24 @@ data class LegendPokemon(
 
 private val queries = DatabaseSingleton.db.pokemonEntityQueries
 
-class PokemonQuery : Query, Klogging {
+class PokemonQuery : Query {
+    private val logger = KotlinLogging.logger {}
+
     @GraphQLDescription("Get all Pokemon")
     @Suppress("unused")
     suspend fun getAllPokemon(): List<Pokemon> = coroutineScope {
-        logger.info("getAllPokemon is called.")
+        logger.info { "getAllPokemon is called." }
         queries.selectAll().executeAsList().map { it.toPokemon() }
     }
 
     @GraphQLDescription("Get a Pokemon by ID")
     @Suppress("unused")
     suspend fun getPokemonNyId(id: ID): Pokemon? = coroutineScope {
-        logger.info("getPokemonNyId is called.", mapOf("args" to mapOf("id" to id)))
-        logger.info("getPokemonNyId is called. {id}", id)
+        logger.atInfo {
+            message = "getPokemonNyId is called."
+            payload = mapOf("id" to id)
+        }
+        logger.info { "getPokemonNyId is called. id:$id" }
         queries.findById(id.value.toInt()).executeAsOneOrNull()?.toPokemon()
     }
 
@@ -62,7 +67,9 @@ class PokemonQuery : Query, Klogging {
     }
 }
 
-class PokemonMutation : Mutation, Klogging {
+class PokemonMutation : Mutation {
+    private val logger = KotlinLogging.logger {}
+
     @GraphQLDescription("Add Pokemon")
     @Suppress("unused")
     suspend fun addPokemon(
@@ -71,8 +78,8 @@ class PokemonMutation : Mutation, Klogging {
         location: String? = null
     ): Pokemon = coroutineScope {
         queries.transactionWithResult {
-            afterCommit { println("commited.") }
-            afterRollback { println("rollback.") }
+            afterCommit { logger.info { "commited." } }
+            afterRollback { logger.info { "rollback." } }
             queries.insert(name, color.name, location).executeAsOne().toPokemon()
         }
     }
