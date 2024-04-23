@@ -45,7 +45,7 @@ class PokemonQuery : Query {
     @GraphQLDescription("Get all Pokemon")
     @Suppress("unused")
     suspend fun getAllPokemon(): List<Pokemon> = coroutineScope {
-        withNewSpan("PokemonQuery", "getPokemonNyId") {
+        usingSpan("PokemonQuery", "getPokemonNyId") {
             logger.info { "getAllPokemon is called." }
             queries.selectAll().executeAsList().map { it.toPokemon() }
         }
@@ -54,7 +54,7 @@ class PokemonQuery : Query {
     @GraphQLDescription("Get a Pokemon by ID")
     @Suppress("unused")
     suspend fun getPokemonNyId(id: ID): Pokemon? = coroutineScope {
-        withNewSpan("PokemonQuery", "getPokemonNyId") {
+        usingSpan("PokemonQuery", "getPokemonNyId") { span ->
             withLoggingContext("id" to id.value) {
                 MDC.put("id", id.value)
                 logger.atInfo {
@@ -62,6 +62,7 @@ class PokemonQuery : Query {
                     payload = mapOf("id" to id)
                 }
                 logger.info { "getPokemonNyId is called. id:$id" }
+                span.addEvent("getPokemonNyId is called.")
 
                 queries.findById(id.value.toInt()).executeAsOneOrNull()?.toPokemon()
             }
@@ -87,7 +88,7 @@ class PokemonMutation : Mutation {
         color: Pokemon.Color,
         location: String? = null
     ): Pokemon = coroutineScope {
-        withNewSpan("PokemonMutation", "addPokemon") {
+        usingSpan("PokemonMutation", "addPokemon") {
             queries.transactionWithResult {
                 afterCommit { logger.info { "commited." } }
                 afterRollback { logger.info { "rollback." } }
